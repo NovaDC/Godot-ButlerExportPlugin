@@ -11,18 +11,9 @@ config_version=5
 [application]
 
 config/name="Butler Export Plugin"
-config/version="v1.0.0.0"
-config/tags=PackedStringArray("inprogress", "tool")
-run/main_scene="res://node_2d.tscn"
+config/version="v1.1.0.0"
 config/features=PackedStringArray("4.2", "GL Compatibility")
-config/icon="res://icon.svg"
-export/example/echo=true
-export/other_commands/pre_export=["pre"]
-export/other_commands/post_export=["post"]
-
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/butler_export_plugin/plugin.cfg", "res://addons/editor_export_command/plugin.cfg", "res://addons/project_export_commands/plugin.cfg")
+config/icon="res://addons/butler_export_plugin/icon.svg"
 
 [rendering]
 
