@@ -1,5 +1,5 @@
 @tool
-@icon("res://addons/butler_export_plugin/icon.svg")
+@icon("./icon.svg")
 class_name ButlerExportPlugin
 extends ToolEditorExportPlugin
 

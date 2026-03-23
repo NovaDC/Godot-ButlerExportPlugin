@@ -17,7 +17,8 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 config/name="Butler Export Plugin"
 config/version="v1.1.0.0"
 config/features=PackedStringArray("4.6", "GL Compatibility")
-config/icon="res://addons/butler_export_plugin/icon.svg"
+boot_splash/image="uid://dbwsryhgaqpq5"
+config/icon="uid://cg6fcttsxfx1f"
 
 [rendering]
 

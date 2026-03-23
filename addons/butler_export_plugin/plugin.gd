@@ -1,9 +1,9 @@
 @tool
-@icon("res://addons/butler_export_plugin/icon.svg")
+@icon("./icon.svg")
 extends EditorPlugin
 
 const PLUGIN_NAME := "butler_export_plugin"
-const PLUGIN_ICON := preload("res://addons/butler_export_plugin/icon.svg")
+const PLUGIN_ICON := preload("./icon.svg")
 
 var _current_inst:ButlerExportPlugin = null
 
