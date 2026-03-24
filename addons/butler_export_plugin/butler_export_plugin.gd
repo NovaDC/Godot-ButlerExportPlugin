@@ -4,7 +4,7 @@ class_name ButlerExportPlugin
 extends ToolEditorExportPlugin
 
 ## ButlerExportPlugin
-## 
+##
 ## An export plugin used to run Itch.io 's [code]butler[/code] utility,
 ## allowing for a automatic publishing to itch.io after export right form the Godot engine.
 ## Requires a local copy of [code]butler[/code] dowloaded to the system,
@@ -68,15 +68,15 @@ static func butler_launch(path:String,
 						  only_if_changed := false,
 						  stay_open := true
 						 ) -> int:
-	
+
 	var exe_path:String = NovaTools.get_editor_setting_default(BUTLER_PATH_EDITOR_SETTING_PATH, "")
-	
+
 	assert (exe_path != "")
 	assert (path != "")
 	assert (user != "")
 	assert (game != "")
 	assert (channel != "")
-	
+
 	var args := ["push"]
 	if only_if_changed:
 		args.append("--if-changed")
