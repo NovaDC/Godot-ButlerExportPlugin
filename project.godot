@@ -20,6 +20,14 @@ config/features=PackedStringArray("4.6", "GL Compatibility")
 boot_splash/image="uid://dbwsryhgaqpq5"
 config/icon="uid://cg6fcttsxfx1f"
 
+[autoload]
+
+TreeWatcher="*uid://byto6ql37kfie"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/butler_export_plugin/plugin.cfg", "res://addons/novatools/plugin.cfg")
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"

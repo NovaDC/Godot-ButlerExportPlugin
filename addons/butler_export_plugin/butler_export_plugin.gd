@@ -59,15 +59,15 @@ static func get_default_channel_name(export_platform:EditorExportPlatform) -> St
 ## all other params corelate to their counterparts in the butler cli.
 ## Returns butler's exit code.
 static func butler_launch(path:String,
-						  user:String,
-						  game:String,
-						  channel:String,
-						  version := "",
-						  ignore_patterns := [],
-						  dereference := false,
-						  only_if_changed := false,
-						  stay_open := true
-						 ) -> int:
+							user:String,
+							game:String,
+							channel:String,
+							version := "",
+							ignore_patterns := [],
+							dereference := false,
+							only_if_changed := false,
+							stay_open := true
+							) -> int:
 
 	var exe_path:String = NovaTools.get_editor_setting_default(BUTLER_PATH_EDITOR_SETTING_PATH, "")
 
@@ -96,10 +96,10 @@ static func butler_launch(path:String,
 ## safely returning if ti is already initialised, without overwriting the setting's value.
 static func try_init_butler_prefix_editor_setting():
 	NovaTools.try_init_editor_setting_path(BUTLER_PATH_EDITOR_SETTING_PATH,
-									   "",
-									   TYPE_STRING,
-									   PROPERTY_HINT_GLOBAL_FILE
-									  )
+											"",
+											TYPE_STRING,
+											PROPERTY_HINT_GLOBAL_FILE
+											)
 
 ## Removes the editor setting for the butler path only if it already defined and
 ## is not changed from the default value.
@@ -178,19 +178,19 @@ func _get_export_options(platform):
 		},
 	]
 
-func _get_export_option_warning(platform: EditorExportPlatform, option: String) -> String:
+func _get_export_option_warning(_platform:EditorExportPlatform, option: String) -> String:
 	if (get_option("butler/upload_to_itch.io") and
 		option == "butler/upload_to_itch.io" and
 		NovaTools.get_editor_setting_default(BUTLER_PATH_EDITOR_SETTING_PATH, "") == ""
-	   ):
+		):
 		return "Butler executable path not set!"
 	return ""
 
-func _get_export_option_visibility(platform: EditorExportPlatform, option: String) -> bool:
+func _get_export_option_visibility(_platform:EditorExportPlatform, option: String) -> bool:
 	if (not get_option("butler/upload_to_itch.io") and
 		option.begins_with("butler/") and
 		option != "butler/upload_to_itch.io"
-	   ):
+		):
 		return false
 	return true
 
@@ -202,11 +202,11 @@ func _get_name():
 func _supports_platform(platform:EditorExportPlatform):
 	return ((not platform.is_class("EditorExportPlatformExtension")) or
 			EXTRA_SUPPORTED_CLASSES_NAMES.any(func (n): return platform.is_class(n))
-		   )
+			)
 
-func _export_end_command(features:PackedStringArray, is_debug:bool, path:String, flags:int):
-	push_warning("Please note, web publishing will not automatically set the uploaded files as \
-	playable in browser. Make sure to do this manually!")
+func _export_end_command(_features:PackedStringArray, _is_debug:bool, path:String, _flags:int):
+	push_warning("Please note, web publishing will not automatically set the uploaded files as " +
+					"playable in browser. Make sure to do this manually!" )
 	await butler_launch(ProjectSettings.globalize_path("res://" + path),
 						get_option("butler/user"),
 						get_option("butler/game_name"),
@@ -216,7 +216,7 @@ func _export_end_command(features:PackedStringArray, is_debug:bool, path:String,
 						get_option("butler/deference"),
 						get_option("butler/only_if_changed"),
 						get_option("butler/stay_open")
-					   )
+						)
 
-func _get_export_features(platform: EditorExportPlatform, debug: bool) -> PackedStringArray:
+func _get_export_features(_platform:EditorExportPlatform, _debug:bool) -> PackedStringArray:
 	return PackedStringArray(["butlerpush"])
