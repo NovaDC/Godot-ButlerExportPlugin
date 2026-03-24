@@ -103,6 +103,7 @@
 		"bbcode",
 		"BBcode",
 		"BBCode",
+		"butlerpush",
 		"cfg",
 		"ctex",
 		"dblite",
@@ -134,6 +135,7 @@
 		"lstrip",
 		"novadc",
 		"NovaDC",
+		"novatools",
 		"Novatools",
 		"ogv",
 		"pingpong",
@@ -152,6 +154,7 @@
 		"uid",
 		"usc",
 		"usdc",
+		"userversion",
 		"utc",
 		"vram",
 		"vsync"

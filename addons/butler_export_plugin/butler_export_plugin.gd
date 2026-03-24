@@ -7,16 +7,16 @@ extends ToolEditorExportPlugin
 ##
 ## An export plugin used to run Itch.io 's [code]butler[/code] utility,
 ## allowing for a automatic publishing to itch.io after export right form the Godot engine.
-## Requires a local copy of [code]butler[/code] dowloaded to the system,
+## Requires a local copy of [code]butler[/code] downloaded to the system,
 ## as well as a known path to it, in order to operate.
 ## All options in this plugin are modifiable in the export, project, and editor settings,
 ## with the [code]export settings[/code] overriding the [ProjectSettings],
-## which overide the [EditorSettings], if availible.
-## Most option provided by this plugin corlate to their counterpart in the butler cli,
+## which override the [EditorSettings], if available.
+## Most option provided by this plugin corelate to their counterpart in the butler cli,
 ## excluding the [code]publish[/code] and [code]exe path[/code] options.
 ## The [code]publish[/code] option simply enables or disables publishing at all.
 ## The [code]exe path[/code] option is the path to the butler exe.
-## Otherwise all option corlate to [code]butler[/code].[br]
+## Otherwise all option corelate to [code]butler[/code].[br]
 ## Requires the NovaTools plugin as a dependency.
 
 ## The settings path for the local path to the butler executable on this system.
@@ -54,7 +54,7 @@ static func get_default_channel_name(export_platform:EditorExportPlatform) -> St
 ## Launches butler in a external command window.
 ## [param exe_path] must be the system path to the butler executable file.
 ## [param path] must be the path to the file / folder to upload
-## [param user], [param game] and [param channel] all directly corlate to the
+## [param user], [param game] and [param channel] all directly corelate to the
 ## [code]user/game:channel[/code] section of the normal butler command.
 ## all other params corelate to their counterparts in the butler cli.
 ## Returns butler's exit code.
@@ -94,7 +94,7 @@ static func butler_launch(path:String,
 
 ## Initialises the editor setting for the butler exe path if it's not already initialised
 ## safely returning if ti is already initialised, without overwriting the setting's value.
-static func try_init_bulter_prefix_editor_setting():
+static func try_init_butler_prefix_editor_setting():
 	NovaTools.try_init_editor_setting_path(BUTLER_PATH_EDITOR_SETTING_PATH,
 									   "",
 									   TYPE_STRING,
@@ -103,7 +103,7 @@ static func try_init_bulter_prefix_editor_setting():
 
 ## Removes the editor setting for the butler path only if it already defined and
 ## is not changed from the default value.
-static func try_deinit_bulter_prefix_editor_setting():
+static func try_deinit_butler_prefix_editor_setting():
 	NovaTools.try_init_editor_setting_path(BUTLER_PATH_EDITOR_SETTING_PATH, "")
 
 func _get_export_options(platform):
@@ -206,7 +206,7 @@ func _supports_platform(platform:EditorExportPlatform):
 
 func _export_end_command(features:PackedStringArray, is_debug:bool, path:String, flags:int):
 	push_warning("Please note, web publishing will not automatically set the uploaded files as \
-	playbale in browser. Make sure to do this manually!")
+	playable in browser. Make sure to do this manually!")
 	await butler_launch(ProjectSettings.globalize_path("res://" + path),
 						get_option("butler/user"),
 						get_option("butler/game_name"),

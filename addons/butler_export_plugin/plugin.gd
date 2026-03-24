@@ -27,12 +27,12 @@ func _exit_tree():
 
 func _try_init_plugin():
 	if _current_inst == null:
-		ButlerExportPlugin.try_init_bulter_prefix_editor_setting()
+		ButlerExportPlugin.try_init_butler_prefix_editor_setting()
 		_current_inst = ButlerExportPlugin.new()
 		add_export_plugin(_current_inst)
 
 func _try_deinit_plugin():
 	if _current_inst != null:
-		ButlerExportPlugin.try_deinit_bulter_prefix_editor_setting()
+		ButlerExportPlugin.try_deinit_butler_prefix_editor_setting()
 		remove_export_plugin(_current_inst)
 		_current_inst = null
