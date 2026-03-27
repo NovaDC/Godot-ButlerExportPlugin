@@ -72,13 +72,13 @@ static func validate_butler_path(exe_path:String) -> int:
 	if exe_path.is_empty():
 		return ERR_FILE_NOT_FOUND
 
-	var err:int = OK
+	var ver_name := "butver_%s.txt" % [Time.get_unix_time_from_system()]
 	var ver_output_path := EditorInterface.get_editor_paths().get_cache_dir()
-	ver_output_path = ver_output_path.path_join("butver.txt")
+	ver_output_path = ver_output_path.path_join(ver_name)
+
+	var err:int = OK
 	if FileAccess.file_exists(ver_output_path):
-		err = DirAccess.remove_absolute(ver_output_path)
-		if err != OK:
-			return err
+		return ERR_FILE_ALREADY_IN_USE
 
 	await NovaTools.launch_external_command_async(exe_path,
 													["version", ">", ver_output_path],
