@@ -104,7 +104,7 @@ static func try_init_butler_prefix_editor_setting():
 ## Removes the editor setting for the butler path only if it already defined and
 ## is not changed from the default value.
 static func try_deinit_butler_prefix_editor_setting():
-	NovaTools.try_init_editor_setting_path(BUTLER_PATH_EDITOR_SETTING_PATH, "")
+	NovaTools.remove_unused_editor_setting_path(BUTLER_PATH_EDITOR_SETTING_PATH, "")
 
 func _get_export_options(platform):
 	if not _supports_platform(platform):
