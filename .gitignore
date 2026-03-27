@@ -30,4 +30,10 @@ config.log
 !.vscode/extensions.json
 !.vscode/*.code-snippets
 
+# Project specific configuration
 addons/novatools/*
+exports/**
+!exports/**/
+!exports/**/.gitkeep
+!export.cfg
+!export_presets.cfg
