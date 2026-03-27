@@ -14,8 +14,16 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 [application]
 
-config/name="Butler Export Plugin"
-config/version="v1.1.0.0"
+config/name="Godot-ButlerExportPlugin"
+config/description="A Godot plugin that provides an interface for itch.io's butler utility in editor.
+
+Provides an interface for butler's push functionality for exports, allowing for automatic uploading or new builds.
+
+This plugin supports Godot v4.5 and higher.
+
+This plugin requires a local copy of butler downloaded to the system in order to operate.
+Requires then Novatools plugin as a dependency.
+NovaTools does not need to be enabled for this plugin to function."
 config/features=PackedStringArray("4.6", "GL Compatibility")
 boot_splash/image="uid://dbwsryhgaqpq5"
 config/icon="uid://cg6fcttsxfx1f"

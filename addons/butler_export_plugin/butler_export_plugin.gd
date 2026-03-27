@@ -3,21 +3,16 @@
 class_name ButlerExportPlugin
 extends ToolEditorExportPlugin
 
-## ButlerExportPlugin
+## A Godot plugin that provides an interface for itch.io's butler utility in editor.
 ##
-## An export plugin used to run Itch.io 's [code]butler[/code] utility,
-## allowing for a automatic publishing to itch.io after export right form the Godot engine.
-## Requires a local copy of [code]butler[/code] downloaded to the system,
-## as well as a known path to it, in order to operate.
-## All options in this plugin are modifiable in the export, project, and editor settings,
-## with the [code]export settings[/code] overriding the [ProjectSettings],
-## which override the [EditorSettings], if available.
-## Most option provided by this plugin corelate to their counterpart in the butler cli,
-## excluding the [code]publish[/code] and [code]exe path[/code] options.
-## The [code]publish[/code] option simply enables or disables publishing at all.
-## The [code]exe path[/code] option is the path to the butler exe.
-## Otherwise all option corelate to [code]butler[/code].[br]
-## Requires the NovaTools plugin as a dependency.
+## Provides an interface for butler's push functionality for exports,
+## allowing for automatic uploading or new builds.[br]
+## [br]
+## This plugin supports Godot v4.5 and higher.[br]
+## [br]
+## This plugin requires a local copy of butler downloaded to the system in order to operate.[br]
+## Requires then [NovaTools] plugin as a dependency.
+## [NovaTools] does not need to be enabled for this plugin to function.
 
 ## The settings path for the local path to the butler executable on this system.
 const BUTLER_PATH_EDITOR_SETTING_PATH := "filesystem/tools/butler/butler_path"
@@ -325,7 +320,7 @@ func _get_export_options(platform) -> Array:
 	return [
 		{
 			"option" : {
-				"name" : "butler/upload_to_itch.io",
+				"name" : "butler/upload_to_itch_io",
 				"type" : TYPE_BOOL,
 			},
 			"default_value" : false,
@@ -415,7 +410,7 @@ func _get_export_options(platform) -> Array:
 				"name" : "butler/open_after_upload",
 				"type" : TYPE_BOOL,
 			},
-			"default_value" : true,
+			"default_value" : false,
 		},
 		{
 			"option" : {
@@ -427,10 +422,10 @@ func _get_export_options(platform) -> Array:
 	]
 
 func _get_export_option_warning(_platform:EditorExportPlatform, option: String) -> String:
-	if not get_option("butler/upload_to_itch.io"):
+	if not get_option("butler/upload_to_itch_io"):
 		return ""
 	match (option):
-		"butler/upload_to_itch.io":
+		"butler/upload_to_itch_io":
 			if get_butler_path().is_empty():
 				return "Butler executable path not set!"
 		"butler/identity_path":
@@ -448,10 +443,18 @@ func _get_export_option_warning(_platform:EditorExportPlatform, option: String) 
 		"butler/channel":
 			if get_option("butler/channel").is_empty():
 				return "Channel must be provided."
+		"butler/enforce_whole_directory":
+			var preset := get_export_preset()
+			if preset != null:
+				var path := preset.get_export_path()
+				if path.ends_with("html") and path.get_file() != "index.html":
+					return ("Itch.io web build require the main file to be named" +
+							"'index.html' to be playable."
+							)
 	return ""
 
 func _get_export_option_visibility(_platform:EditorExportPlatform, option: String) -> bool:
-	if not get_option("butler/upload_to_itch.io") and option != "butler/upload_to_itch.io":
+	if not get_option("butler/upload_to_itch_io") and option != "butler/upload_to_itch_io":
 		return not option.begins_with("butler/")
 	match (option):
 		"butler/identity_path", "butler/stay_open", "butler/dereference":
@@ -465,6 +468,13 @@ func _get_name() -> String:
 	# and this plugin must always go last; lest it upload an incomplete export.
 
 func _supports_platform(platform:EditorExportPlatform) -> bool:
+	if platform is EditorExportPlatformWeb:
+		# Web export platforms are currently bugged in the godot engine.
+		# If they exist in an export configuration at all,
+		# their settings will override the settings for all other types of presets.
+		# Once this is fixed,
+		# removing this early return will reenable all web platform functionality.
+		return false
 	return ((not platform.is_class("EditorExportPlatformExtension")) or
 			EXTRA_SUPPORTED_CLASSES_NAMES.any(func (n): return platform.is_class(n))
 			)
@@ -472,7 +482,7 @@ func _supports_platform(platform:EditorExportPlatform) -> bool:
 func _get_export_features(platform:EditorExportPlatform, debug:bool) -> PackedStringArray:
 	if not _supports_platform(platform):
 		return PackedStringArray()
-	if not get_option("butler/upload_to_itch.io"):
+	if not get_option("butler/upload_to_itch_io"):
 		return PackedStringArray()
 	if not get_option("butler/allow_debug_builds") and debug:
 		return PackedStringArray()
@@ -484,7 +494,7 @@ func _export_end_tool(features:PackedStringArray,
 						path:String,
 						_flags:int
 						) -> void:
-	if not get_option("butler/upload_to_itch.io"):
+	if not get_option("butler/upload_to_itch_io"):
 		return
 
 	if not get_option("butler/allow_debug_builds") and is_debug:
@@ -510,6 +520,7 @@ func _export_end_tool(features:PackedStringArray,
 						get_option("butler/identity_path"),
 						get_option("butler/stay_open")
 						)
+
 	if err != OK:
 		push_error("Butler push returned an error: %s (%d)" % [error_string(err), err])
 		return
@@ -518,6 +529,7 @@ func _export_end_tool(features:PackedStringArray,
 		err = open_game_itch_io_page(get_option("butler/user"), get_option("butler/game_name"))
 		if err != OK:
 			push_error("Error when trying to open game webpage: %s (%d)" % [error_string(err), err])
+			return
 
 func _export_begin_tool(_features:PackedStringArray,
 						_is_debug:bool,
