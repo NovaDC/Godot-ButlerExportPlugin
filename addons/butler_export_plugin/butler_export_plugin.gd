@@ -98,7 +98,8 @@ static func try_init_butler_prefix_editor_setting():
 	NovaTools.try_init_editor_setting_path(BUTLER_PATH_EDITOR_SETTING_PATH,
 											"",
 											TYPE_STRING,
-											PROPERTY_HINT_GLOBAL_FILE
+											PROPERTY_HINT_GLOBAL_FILE,
+											"butler, butler.*, *.exe,"
 											)
 
 ## Removes the editor setting for the butler path only if it already defined and
@@ -136,6 +137,8 @@ func _get_export_options(platform):
 			"option" : {
 				"name" : "butler/channel",
 				"type" : TYPE_STRING,
+				"hint" : PROPERTY_HINT_ENUM_SUGGESTION,
+				"hint_string" : ",".join(_CHANNEL_NAME_SUGGESTIONS)
 			},
 			"default_value" : get_default_channel_name(platform),
 		},
@@ -143,8 +146,11 @@ func _get_export_options(platform):
 			"option" : {
 				"name" : "butler/version",
 				"type" : TYPE_STRING,
+				"hint" : PROPERTY_HINT_ENUM_SUGGESTION,
+				"hint_string" : _get_version_suggestions(platform)
 			},
 			"default_value" : ProjectSettings.get_setting("application/config/version"),
+			"update_visibility" : true,
 		},
 		{
 			"option" : {
@@ -220,3 +226,53 @@ func _export_end_command(_features:PackedStringArray, _is_debug:bool, path:Strin
 
 func _get_export_features(_platform:EditorExportPlatform, _debug:bool) -> PackedStringArray:
 	return PackedStringArray(["butlerpush"])
+
+func _get_version_suggestions(export_platform:EditorExportPlatform) -> String:
+	var project_version := ProjectSettings.get_setting("application/config/version")
+	var options := [project_version]
+
+	var preset := get_export_preset()
+	if preset != null:
+		if export_platform is EditorExportPlatformWindows:
+			options.append_array([
+				preset.get_version("application/file_version", true),
+				preset.get_version("application/product_version", true),
+				preset.get_version("application/file_version", false),
+				preset.get_version("application/product_version", false)
+			])
+		if export_platform is EditorExportPlatformAndroid:
+			options.append_array([
+				preset.get_version("version/name", false),
+				preset.get_version("version/code", false)
+			])
+		if export_platform is EditorExportPlatformMacOS or export_platform is EditorExportPlatformIOS or export_platform.is_class("EditorExportPlatformVisionOS"):
+			options.append_array([
+				preset.get_version("application/version", false),
+				preset.get_version("application/short_version", false)
+			])
+
+	options.append_array(_COMMON_VERISON_SUGGESTIONS)
+
+	# join with commas, remove blanks, convert to strings, and deduplicate all in one go
+	var ret := ""
+	for o in options:
+		if typeof(o) == TYPE_NIL:
+			continue
+		o = str(o)
+		if o in ret or o.is_empty() or o == str(null):
+			continue
+		if not ret.is_empty():
+			ret += ","
+		ret += o
+
+	return ret
+const _CHANNEL_NAME_SUGGESTIONS := [
+	"win",
+	"mac",
+	"linux",
+	"android",
+	"html",
+	"webapp"
+]
+const _COMMON_VERISON_SUGGESTIONS := ["latest","beta","demo","testing"]
+
