@@ -24,6 +24,7 @@ This plugin supports Godot v4.5 and higher.
 This plugin requires a local copy of butler downloaded to the system in order to operate.
 Requires then Novatools plugin as a dependency.
 NovaTools does not need to be enabled for this plugin to function."
+config/version="v2.0.0.0"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 boot_splash/image="uid://dbwsryhgaqpq5"
 config/icon="uid://cg6fcttsxfx1f"
