@@ -10,6 +10,15 @@ const _ENSURE_SCRIPT_DOCS:Array[Script] = [
 ]
 
 var _current_inst:ButlerExportPlugin = null
+var _tool_menu:PopupMenu = null
+
+var _but_tools = {
+	"Login..." : ButlerExportPlugin.butler_login,
+	"Logout..." : ButlerExportPlugin.butler_logout,
+	"Upgrade" : ButlerExportPlugin.butler_upgrade,
+	"Version" : ButlerExportPlugin.butler_version
+}
+const _BUTLER_TOOLS_SUBMENU_NAME := "itch.io Butler"
 
 # Every once ands a while the script docs simply refuse to update properly.
 # This nudges the docs into a ensuring that the important scripts added by
@@ -43,12 +52,25 @@ func _try_init_plugin():
 	if not EditorInterface.is_plugin_enabled(PLUGIN_NAME):
 		return
 	ButlerExportPlugin.try_init_butler_prefix_editor_setting()
+	if _tool_menu == null:
+		_tool_menu = PopupMenu.new()
+		for tool_name in _but_tools:
+			_tool_menu.add_item(tool_name)
+		var on_index_pressed := func (index:int):
+			var tool_name := _tool_menu.get_item_text(index)
+			if tool_name in _but_tools:
+				_but_tools[tool_name].call()
+		_tool_menu.index_pressed.connect(on_index_pressed)
+		add_tool_submenu_item(_BUTLER_TOOLS_SUBMENU_NAME, _tool_menu)
 	if _current_inst == null:
 		_current_inst = ButlerExportPlugin.new()
 		add_export_plugin(_current_inst)
 
 func _try_deinit_plugin():
 	ButlerExportPlugin.try_deinit_butler_prefix_editor_setting()
+	if _tool_menu != null:
+		remove_tool_menu_item(_BUTLER_TOOLS_SUBMENU_NAME)
+		_tool_menu = null
 	if _current_inst != null:
 		remove_export_plugin(_current_inst)
 		_current_inst = null
