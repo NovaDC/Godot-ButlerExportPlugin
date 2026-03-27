@@ -266,6 +266,64 @@ func _get_version_suggestions(export_platform:EditorExportPlatform) -> String:
 		ret += o
 
 	return ret
+
+static func get_butler_path() -> String:
+	var exe_path := NovaTools.get_editor_setting_default(BUTLER_PATH_EDITOR_SETTING_PATH, "")
+	return NovaTools.normalize_path_absolute(exe_path, false)
+
+# Not thread safe, and it shouldnt have to be really
+static func validate_butler_path(exe_path:String) -> int:
+	exe_path = NovaTools.normalize_path_absolute(exe_path, false)
+	if exe_path.is_empty():
+		return ERR_FILE_NOT_FOUND
+
+	var err:int = OK
+	var ver_output_path := EditorInterface.get_editor_paths().get_cache_dir().path_join("butver.txt")
+	if FileAccess.file_exists(ver_output_path):
+		err = DirAccess.remove_absolute(ver_output_path)
+		if err != OK:
+			return err
+
+	await NovaTools.launch_external_command_async(exe_path, ["version", ">", ver_output_path], false)
+
+	var version_reported := FileAccess.get_file_as_string(ver_output_path)
+	if version_reported.is_empty():
+		err = FileAccess.get_open_error()
+		if err != OK:
+			return err
+
+	if FileAccess.file_exists(ver_output_path):
+		err = DirAccess.remove_absolute(ver_output_path)
+		if err != OK:
+			return err
+
+	version_reported = version_reported.strip_escapes().strip_edges()
+	if version_reported.is_empty():
+		return ERR_FILE_UNRECOGNIZED
+
+	return OK
+
+static func butler_run(args := [], stay_open := false, validated := true):
+	var exe_path := get_butler_path()
+	if validated:
+		var err := await validate_butler_path(exe_path)
+		if err != OK:
+			return err
+	await NovaTools.launch_external_command_async(exe_path, args, stay_open)
+	return OK
+
+static func butler_version(stay_open := true) -> int:
+	return await butler_run(["version"], stay_open, false)
+
+static func butler_upgrade(stay_open := true) -> int:
+	return await butler_run(["upgrade"], stay_open)
+
+static func butler_login(stay_open := true) -> int:
+	return await butler_run(["login"], stay_open)
+
+static func butler_logout(stay_open := true) -> int:
+	return await butler_run(["logout"], stay_open)
+
 const _CHANNEL_NAME_SUGGESTIONS := [
 	"win",
 	"mac",
