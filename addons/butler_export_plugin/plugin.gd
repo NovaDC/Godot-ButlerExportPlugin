@@ -40,13 +40,15 @@ func _exit_tree():
 	_try_deinit_plugin()
 
 func _try_init_plugin():
+	if not EditorInterface.is_plugin_enabled(PLUGIN_NAME):
+		return
+	ButlerExportPlugin.try_init_butler_prefix_editor_setting()
 	if _current_inst == null:
-		ButlerExportPlugin.try_init_butler_prefix_editor_setting()
 		_current_inst = ButlerExportPlugin.new()
 		add_export_plugin(_current_inst)
 
 func _try_deinit_plugin():
+	ButlerExportPlugin.try_deinit_butler_prefix_editor_setting()
 	if _current_inst != null:
-		ButlerExportPlugin.try_deinit_butler_prefix_editor_setting()
 		remove_export_plugin(_current_inst)
 		_current_inst = null
