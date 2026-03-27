@@ -270,6 +270,16 @@ func _supports_platform(platform:EditorExportPlatform):
 			EXTRA_SUPPORTED_CLASSES_NAMES.any(func (n): return platform.is_class(n))
 			)
 
+func _get_export_features(platform:EditorExportPlatform, debug:bool) -> PackedStringArray:
+	if not _supports_platform(platform):
+		return PackedStringArray()
+	if not get_option("butler/upload_to_itch.io"):
+		return PackedStringArray()
+	if not get_option("butler/allow_debug_builds") and debug:
+		return PackedStringArray()
+
+	return PackedStringArray(["butlerpush"])
+
 func _export_end_tool(features:PackedStringArray, is_debug:bool, path:String, _flags:int):
 	if not get_option("butler/upload_to_itch.io"):
 		return
@@ -309,9 +319,6 @@ func _export_end_tool(features:PackedStringArray, is_debug:bool, path:String, _f
 
 func _export_begin_tool(features:PackedStringArray, is_debug:bool, path:String, flags:int):
 	return
-
-func _get_export_features(_platform:EditorExportPlatform, _debug:bool) -> PackedStringArray:
-	return PackedStringArray(["butlerpush"])
 
 func _suggest_whole_directory(export_platform:EditorExportPlatform) -> bool:
 	if export_platform is EditorExportPlatformAndroid:
