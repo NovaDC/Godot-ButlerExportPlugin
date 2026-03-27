@@ -93,7 +93,7 @@ static func butler_launch(path:String,
 	return await NovaTools.launch_external_command_async(exe_path, args, stay_open)
 
 ## Initialises the editor setting for the butler exe path if it's not already initialised
-## safely returning if ti is already initialised, without overwriting the setting's value.
+## safely returning if it is already initialised, without overwriting the setting's value.
 static func try_init_butler_prefix_editor_setting():
 	NovaTools.try_init_editor_setting_path(BUTLER_PATH_EDITOR_SETTING_PATH,
 											"",
@@ -157,7 +157,7 @@ func _get_export_options(platform):
 		},
 		{
 			"option" : {
-				"name" : "butler/deference",
+				"name" : "butler/dereference",
 				"type" : TYPE_BOOL,
 			},
 			"default_value" : false,
@@ -213,7 +213,7 @@ func _export_end_command(_features:PackedStringArray, _is_debug:bool, path:Strin
 						get_option("butler/channel"),
 						get_option("butler/version"),
 						get_option("butler/ignore_file_patterns"),
-						get_option("butler/deference"),
+						get_option("butler/dereference"),
 						get_option("butler/only_if_changed"),
 						get_option("butler/stay_open")
 						)
