@@ -1,0 +1,3 @@
+[submodule "submodules/Godot-Novatools"]
+	path = submodules/Godot-Novatools
+	url = https://github.com/NovaDC/Godot-Novatools.git
