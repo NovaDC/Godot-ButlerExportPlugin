@@ -2,23 +2,25 @@
 @icon("./icon.svg")
 extends EditorPlugin
 
-const PLUGIN_NAME := "butler_export_plugin"
+const PLUGIN_NAME_INTERNAL := "butler_export_plugin"
+const PLUGIN_NAME := "Butler Export Plugin"
 const PLUGIN_ICON := preload("./icon.svg")
 
 const _ENSURE_SCRIPT_DOCS:Array[Script] = [
     preload("./butler_export_plugin.gd")
 ]
 
+const _BUTLER_TOOLS_SUBMENU_NAME := "itch.io Butler"
+
 var _current_inst:ButlerExportPlugin = null
 var _tool_menu:PopupMenu = null
 
-var _but_tools = {
+var _but_tools := {
 	"Login..." : ButlerExportPlugin.butler_login,
 	"Logout..." : ButlerExportPlugin.butler_logout,
 	"Upgrade" : ButlerExportPlugin.butler_upgrade,
 	"Version" : ButlerExportPlugin.butler_version
 }
-const _BUTLER_TOOLS_SUBMENU_NAME := "itch.io Butler"
 
 # Every once ands a while the script docs simply refuse to update properly.
 # This nudges the docs into a ensuring that the important scripts added by
@@ -28,28 +30,28 @@ func _ensure_script_docs() -> void:
 	for scr in _ENSURE_SCRIPT_DOCS:
 		edit.update_docs_from_script(scr)
 
-func _get_plugin_icon():
+func _get_plugin_icon() -> Texture2D:
 	return PLUGIN_ICON
 
-func _get_plugin_name():
+func _get_plugin_name() -> String:
 	return PLUGIN_NAME
 
-func _enter_tree():
+func _enter_tree() -> void:
 	_ensure_script_docs()
 	_try_init_plugin()
 
-func _enable_plugin():
+func _enable_plugin() -> void:
 	_ensure_script_docs()
 	_try_init_plugin()
 
-func _disable_plugin():
+func _disable_plugin() -> void:
 	_try_deinit_plugin()
 
-func _exit_tree():
+func _exit_tree() -> void:
 	_try_deinit_plugin()
 
-func _try_init_plugin():
-	if not EditorInterface.is_plugin_enabled(PLUGIN_NAME):
+func _try_init_plugin() -> void:
+	if not EditorInterface.is_plugin_enabled(PLUGIN_NAME_INTERNAL):
 		return
 	ButlerExportPlugin.try_init_butler_prefix_editor_setting()
 	if _tool_menu == null:
@@ -66,7 +68,7 @@ func _try_init_plugin():
 		_current_inst = ButlerExportPlugin.new()
 		add_export_plugin(_current_inst)
 
-func _try_deinit_plugin():
+func _try_deinit_plugin() -> void:
 	ButlerExportPlugin.try_deinit_butler_prefix_editor_setting()
 	if _tool_menu != null:
 		remove_tool_menu_item(_BUTLER_TOOLS_SUBMENU_NAME)

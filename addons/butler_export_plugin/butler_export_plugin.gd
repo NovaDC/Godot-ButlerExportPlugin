@@ -43,13 +43,95 @@ const BUTLER_CHANNEL_DEFAULT_VIRTUAL_METHOD_NAME:StringName = "_get_butler_chann
 ## but should be supported by this plugin.
 const EXTRA_SUPPORTED_CLASSES_NAMES := ["SourceEditorExportPlatform"]
 
-## Gets the default butler channel name for the given [EditorExportPlatform].
+const _CHANNEL_NAME_SUGGESTIONS := [
+	"win",
+	"mac",
+	"linux",
+	"android",
+	"html",
+	"webapp"
+]
+
+const _COMMON_VERSION_SUGGESTIONS := ["latest", "beta", "demo", "testing"]
+
+## Get the default butler channel name for the given [EditorExportPlatform].
 static func get_default_channel_name(export_platform:EditorExportPlatform) -> String:
 	if export_platform.has_method(BUTLER_CHANNEL_DEFAULT_VIRTUAL_METHOD_NAME):
 		return export_platform.call(BUTLER_CHANNEL_DEFAULT_VIRTUAL_METHOD_NAME)
 	if OS_NAME_TO_BUTLER_CHANNEL_NAME.keys().has(export_platform.get_os_name()):
 		return OS_NAME_TO_BUTLER_CHANNEL_NAME[export_platform.get_os_name()]
 	return ""
+
+static func get_butler_path() -> String:
+	var exe_path := NovaTools.get_editor_setting_default(BUTLER_PATH_EDITOR_SETTING_PATH, "")
+	return NovaTools.normalize_path_absolute(exe_path, false)
+
+# Not thread safe, and it shouldn't have to be really
+static func validate_butler_path(exe_path:String) -> int:
+	exe_path = NovaTools.normalize_path_absolute(exe_path, false)
+	if exe_path.is_empty():
+		return ERR_FILE_NOT_FOUND
+
+	var err:int = OK
+	var ver_output_path := EditorInterface.get_editor_paths().get_cache_dir()
+	ver_output_path = ver_output_path.path_join("butver.txt")
+	if FileAccess.file_exists(ver_output_path):
+		err = DirAccess.remove_absolute(ver_output_path)
+		if err != OK:
+			return err
+
+	await NovaTools.launch_external_command_async(exe_path,
+													["version", ">", ver_output_path],
+													false
+													)
+
+	var version_reported := FileAccess.get_file_as_string(ver_output_path)
+	if version_reported.is_empty():
+		err = FileAccess.get_open_error()
+		if err != OK:
+			return err
+
+	if FileAccess.file_exists(ver_output_path):
+		err = DirAccess.remove_absolute(ver_output_path)
+		if err != OK:
+			return err
+
+	version_reported = version_reported.strip_escapes().strip_edges()
+	if version_reported.is_empty():
+		return ERR_FILE_UNRECOGNIZED
+
+	return OK
+
+static func butler_run(args := [], stay_open := false, validated := true) -> int:
+	var exe_path := get_butler_path()
+	if validated:
+		var err := await validate_butler_path(exe_path)
+		if err != OK:
+			return err
+	await NovaTools.launch_external_command_async(exe_path, args, stay_open)
+	return OK
+
+static func butler_version(stay_open := true) -> int:
+	return await butler_run(["version"], stay_open, false)
+
+#TODO
+static func butler_upgrade(stay_open := true) -> int:
+	return await butler_run(["upgrade"], stay_open)
+
+static func butler_login(stay_open := true) -> int:
+	return await butler_run(["login"], stay_open)
+
+static func butler_logout(stay_open := true) -> int:
+	return await butler_run(["logout"], stay_open)
+
+static func open_game_itch_io_page(user:String, game:String) -> int:
+	if user.is_empty() or game.is_empty():
+		return ERR_INVALID_PARAMETER
+
+	user = user.uri_encode()
+	game = game.uri_encode()
+
+	return OS.shell_open("https://%s.itch.io/%s" % [user, game])
 
 ## Launches butler in a external command window.
 ## [param exe_path] must be the system path to the butler executable file.
@@ -108,7 +190,7 @@ static func butler_push(path:String,
 
 ## Initialises the editor setting for the butler exe path if it's not already initialised
 ## safely returning if it is already initialised, without overwriting the setting's value.
-static func try_init_butler_prefix_editor_setting():
+static func try_init_butler_prefix_editor_setting() -> void:
 	NovaTools.try_init_editor_setting_path(BUTLER_PATH_EDITOR_SETTING_PATH,
 											"",
 											TYPE_STRING,
@@ -118,10 +200,67 @@ static func try_init_butler_prefix_editor_setting():
 
 ## Removes the editor setting for the butler path only if it already defined and
 ## is not changed from the default value.
-static func try_deinit_butler_prefix_editor_setting():
+static func try_deinit_butler_prefix_editor_setting() -> void:
 	NovaTools.remove_unused_editor_setting_path(BUTLER_PATH_EDITOR_SETTING_PATH, "")
 
-func _get_export_options(platform):
+func _suggest_whole_directory(export_platform:EditorExportPlatform) -> bool:
+	if export_platform is EditorExportPlatformAndroid:
+		return false
+	if (export_platform is EditorExportPlatformWindows or
+		export_platform is EditorExportPlatformLinuxBSD
+		):
+		var preset := get_export_preset()
+		if preset == null:
+			return false
+		return not get_export_preset().get_or_env("binary_format/embed_pck", "")
+	if export_platform is EditorExportPlatformWeb:
+		return true
+	return false
+
+func _get_version_suggestions(export_platform:EditorExportPlatform) -> String:
+	var project_version := ProjectSettings.get_setting("application/config/version")
+	var options := [project_version]
+
+	var preset := get_export_preset()
+	if preset != null:
+		if export_platform is EditorExportPlatformWindows:
+			options.append_array([
+				preset.get_version("application/file_version", true),
+				preset.get_version("application/product_version", true),
+				preset.get_version("application/file_version", false),
+				preset.get_version("application/product_version", false)
+			])
+		if export_platform is EditorExportPlatformAndroid:
+			options.append_array([
+				preset.get_version("version/name", false),
+				preset.get_version("version/code", false)
+			])
+		if (export_platform is EditorExportPlatformMacOS or
+			export_platform is EditorExportPlatformIOS or
+			export_platform.is_class("EditorExportPlatformVisionOS")
+			):
+			options.append_array([
+				preset.get_version("application/version", false),
+				preset.get_version("application/short_version", false)
+			])
+
+	options.append_array(_COMMON_VERSION_SUGGESTIONS)
+
+	# join with commas, remove blanks, convert to strings, and deduplicate all in one go
+	var ret := ""
+	for o in options:
+		if typeof(o) == TYPE_NIL:
+			continue
+		o = str(o)
+		if o in ret or o.is_empty() or o == str(null):
+			continue
+		if not ret.is_empty():
+			ret += ","
+		ret += o
+
+	return ret
+
+func _get_export_options(platform) -> Array:
 	if not _supports_platform(platform):
 		return []
 	return [
@@ -260,12 +399,12 @@ func _get_export_option_visibility(_platform:EditorExportPlatform, option: Strin
 			return get_export_preset().are_advanced_options_enabled()
 	return true
 
-func _get_name():
+func _get_name() -> String:
 	return "zzzzzzzzzzzzzzzzzzzzzzzzzz"
 	#Name intentionally selected in order for this plugin to always be called last when exporting!
 	# The engine calls export plugins based off of their names, sorted alphabetically.
 
-func _supports_platform(platform:EditorExportPlatform):
+func _supports_platform(platform:EditorExportPlatform) -> bool:
 	return ((not platform.is_class("EditorExportPlatformExtension")) or
 			EXTRA_SUPPORTED_CLASSES_NAMES.any(func (n): return platform.is_class(n))
 			)
@@ -280,7 +419,11 @@ func _get_export_features(platform:EditorExportPlatform, debug:bool) -> PackedSt
 
 	return PackedStringArray(["butlerpush"])
 
-func _export_end_tool(features:PackedStringArray, is_debug:bool, path:String, _flags:int):
+func _export_end_tool(features:PackedStringArray,
+						is_debug:bool,
+						path:String,
+						_flags:int
+						) -> void:
 	if not get_option("butler/upload_to_itch.io"):
 		return
 
@@ -289,13 +432,12 @@ func _export_end_tool(features:PackedStringArray, is_debug:bool, path:String, _f
 		return
 
 	if "web" in features:
-		push_warning("Please note, web publishing will not automatically set the uploaded files as " +
-						"playable in browser. Make sure to do this manually!")
+		push_warning("Please note, web publishing will not automatically set the uploaded " +
+						"files as playable in browser. Make sure to do this manually!")
 
 	path = "res://".path_join(path)
 	if get_option("butler/enforce_whole_directory"):
 		path = path.get_base_dir()
-
 
 	var err := await butler_push(path,
 						get_option("butler/user"),
@@ -317,133 +459,9 @@ func _export_end_tool(features:PackedStringArray, is_debug:bool, path:String, _f
 		if err != OK:
 			push_error("Error when trying to open game webpage: %s (%d)" % [error_string(err), err])
 
-func _export_begin_tool(features:PackedStringArray, is_debug:bool, path:String, flags:int):
+func _export_begin_tool(_features:PackedStringArray,
+						_is_debug:bool,
+						_path:String,
+						_flags:int
+						) -> void:
 	return
-
-func _suggest_whole_directory(export_platform:EditorExportPlatform) -> bool:
-	if export_platform is EditorExportPlatformAndroid:
-		return false
-	if export_platform is EditorExportPlatformWindows or export_platform is EditorExportPlatformLinuxBSD:
-		var preset := get_export_preset()
-		if preset == null:
-			return false
-		return not get_export_preset().get_or_env("binary_format/embed_pck", "")
-	if export_platform is EditorExportPlatformWeb:
-		return true
-	return false
-
-func _get_version_suggestions(export_platform:EditorExportPlatform) -> String:
-	var project_version := ProjectSettings.get_setting("application/config/version")
-	var options := [project_version]
-
-	var preset := get_export_preset()
-	if preset != null:
-		if export_platform is EditorExportPlatformWindows:
-			options.append_array([
-				preset.get_version("application/file_version", true),
-				preset.get_version("application/product_version", true),
-				preset.get_version("application/file_version", false),
-				preset.get_version("application/product_version", false)
-			])
-		if export_platform is EditorExportPlatformAndroid:
-			options.append_array([
-				preset.get_version("version/name", false),
-				preset.get_version("version/code", false)
-			])
-		if export_platform is EditorExportPlatformMacOS or export_platform is EditorExportPlatformIOS or export_platform.is_class("EditorExportPlatformVisionOS"):
-			options.append_array([
-				preset.get_version("application/version", false),
-				preset.get_version("application/short_version", false)
-			])
-
-	options.append_array(_COMMON_VERISON_SUGGESTIONS)
-
-	# join with commas, remove blanks, convert to strings, and deduplicate all in one go
-	var ret := ""
-	for o in options:
-		if typeof(o) == TYPE_NIL:
-			continue
-		o = str(o)
-		if o in ret or o.is_empty() or o == str(null):
-			continue
-		if not ret.is_empty():
-			ret += ","
-		ret += o
-
-	return ret
-
-static func get_butler_path() -> String:
-	var exe_path := NovaTools.get_editor_setting_default(BUTLER_PATH_EDITOR_SETTING_PATH, "")
-	return NovaTools.normalize_path_absolute(exe_path, false)
-
-# Not thread safe, and it shouldnt have to be really
-static func validate_butler_path(exe_path:String) -> int:
-	exe_path = NovaTools.normalize_path_absolute(exe_path, false)
-	if exe_path.is_empty():
-		return ERR_FILE_NOT_FOUND
-
-	var err:int = OK
-	var ver_output_path := EditorInterface.get_editor_paths().get_cache_dir().path_join("butver.txt")
-	if FileAccess.file_exists(ver_output_path):
-		err = DirAccess.remove_absolute(ver_output_path)
-		if err != OK:
-			return err
-
-	await NovaTools.launch_external_command_async(exe_path, ["version", ">", ver_output_path], false)
-
-	var version_reported := FileAccess.get_file_as_string(ver_output_path)
-	if version_reported.is_empty():
-		err = FileAccess.get_open_error()
-		if err != OK:
-			return err
-
-	if FileAccess.file_exists(ver_output_path):
-		err = DirAccess.remove_absolute(ver_output_path)
-		if err != OK:
-			return err
-
-	version_reported = version_reported.strip_escapes().strip_edges()
-	if version_reported.is_empty():
-		return ERR_FILE_UNRECOGNIZED
-
-	return OK
-
-static func butler_run(args := [], stay_open := false, validated := true):
-	var exe_path := get_butler_path()
-	if validated:
-		var err := await validate_butler_path(exe_path)
-		if err != OK:
-			return err
-	await NovaTools.launch_external_command_async(exe_path, args, stay_open)
-	return OK
-
-static func butler_version(stay_open := true) -> int:
-	return await butler_run(["version"], stay_open, false)
-
-static func butler_upgrade(stay_open := true) -> int:
-	return await butler_run(["upgrade"], stay_open)
-
-static func butler_login(stay_open := true) -> int:
-	return await butler_run(["login"], stay_open)
-
-static func butler_logout(stay_open := true) -> int:
-	return await butler_run(["logout"], stay_open)
-
-const _CHANNEL_NAME_SUGGESTIONS := [
-	"win",
-	"mac",
-	"linux",
-	"android",
-	"html",
-	"webapp"
-]
-const _COMMON_VERISON_SUGGESTIONS := ["latest","beta","demo","testing"]
-
-static func open_game_itch_io_page(user:String, game:String) -> int:
-	if user.is_empty() or game.is_empty():
-		return ERR_INVALID_PARAMETER
-
-	user = user.uri_encode()
-	game = game.uri_encode()
-
-	return OS.shell_open("https://%s.itch.io/%s" % [user, game])
