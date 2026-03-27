@@ -58,39 +58,53 @@ static func get_default_channel_name(export_platform:EditorExportPlatform) -> St
 ## [code]user/game:channel[/code] section of the normal butler command.
 ## all other params corelate to their counterparts in the butler cli.
 ## Returns butler's exit code.
-static func butler_launch(path:String,
+static func butler_push(path:String,
 							user:String,
 							game:String,
 							channel:String,
 							version := "",
 							ignore_patterns := [],
 							dereference := false,
-							only_if_changed := false,
+							only_if_changed := false, identity_path := "",
 							stay_open := true
 							) -> int:
 
-	var exe_path:String = NovaTools.get_editor_setting_default(BUTLER_PATH_EDITOR_SETTING_PATH, "")
+	user = user.strip_escapes().strip_edges()
+	game = game.strip_escapes().strip_edges()
+	channel = channel.strip_escapes().strip_edges()
+	if user.is_empty() or game.is_empty() or channel.is_empty():
+		return ERR_INVALID_PARAMETER
 
-	assert (exe_path != "")
-	assert (path != "")
-	assert (user != "")
-	assert (game != "")
-	assert (channel != "")
+	path = NovaTools.normalize_path_absolute(path, false)
+	if path.is_empty():
+		return ERR_FILE_NOT_FOUND
+
+	identity_path = identity_path.strip_escapes().strip_edges()
+	if not identity_path.is_empty():
+		identity_path = NovaTools.normalize_path_absolute(identity_path, false)
+		if identity_path.is_empty():
+			# we cant just continue on when the identity path couldn't be found...
+			return ERR_FILE_NOT_FOUND
 
 	var args := ["push"]
+	identity_path = identity_path.strip_escapes().strip_edges()
+	if not identity_path.is_empty():
+		args.append("--identity")
+		args.append(identity_path)
 	if only_if_changed:
 		args.append("--if-changed")
 	if dereference:
 		args.append("--dereference")
 	for pattern in ignore_patterns:
 		args.append("--ignore")
-		args.append(pattern)
+		args.append(pattern.strip_escapes().strip_edges())
 	args.append(path)
 	args.append("%s/%s:%s" % [user, game, channel])
-	if version and not version.is_empty():
+	version = version.strip_escapes().strip_edges()
+	if not version.is_empty():
 		args.append("--userversion")
 		args.append(version)
-	return await NovaTools.launch_external_command_async(exe_path, args, stay_open)
+	return await butler_run(args, stay_open)
 
 ## Initialises the editor setting for the butler exe path if it's not already initialised
 ## safely returning if it is already initialised, without overwriting the setting's value.
