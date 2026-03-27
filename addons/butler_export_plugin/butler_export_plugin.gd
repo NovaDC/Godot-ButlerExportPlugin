@@ -214,6 +214,13 @@ func _get_export_options(platform):
 		},
 		{
 			"option" : {
+				"name" : "butler/open_after_upload",
+				"type" : TYPE_BOOL,
+			},
+			"default_value" : true,
+		},
+		{
+			"option" : {
 				"name" : "butler/stay_open",
 				"type" : TYPE_BOOL,
 			},
@@ -292,7 +299,13 @@ func _export_end_tool(features:PackedStringArray, is_debug:bool, path:String, _f
 						get_option("butler/stay_open")
 						)
 	if err != OK:
-		push_error("Butler export returned an error: %s (%d)" % [error_string(err), err])
+		push_error("Butler push returned an error: %s (%d)" % [error_string(err), err])
+		return
+
+	if get_option("butler/open_after_upload"):
+		err = open_game_itch_io_page(get_option("butler/user"), get_option("butler/game_name"))
+		if err != OK:
+			push_error("Error when trying to open game webpage: %s (%d)" % [error_string(err), err])
 
 func _export_begin_tool(features:PackedStringArray, is_debug:bool, path:String, flags:int):
 	return
@@ -419,3 +432,11 @@ const _CHANNEL_NAME_SUGGESTIONS := [
 ]
 const _COMMON_VERISON_SUGGESTIONS := ["latest","beta","demo","testing"]
 
+static func open_game_itch_io_page(user:String, game:String) -> int:
+	if user.is_empty() or game.is_empty():
+		return ERR_INVALID_PARAMETER
+
+	user = user.uri_encode()
+	game = game.uri_encode()
+
+	return OS.shell_open("https://%s.itch.io/%s" % [user, game])
