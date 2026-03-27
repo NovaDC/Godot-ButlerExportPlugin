@@ -54,7 +54,7 @@ const _CHANNEL_NAME_SUGGESTIONS := [
 
 const _COMMON_VERSION_SUGGESTIONS := ["latest", "beta", "demo", "testing"]
 
-## Get the default butler channel name for the given [EditorExportPlatform].
+## Get the default butler channel name for the given [EditorExportPlatform] [param export_platform].
 static func get_default_channel_name(export_platform:EditorExportPlatform) -> String:
 	if export_platform.has_method(BUTLER_CHANNEL_DEFAULT_VIRTUAL_METHOD_NAME):
 		return export_platform.call(BUTLER_CHANNEL_DEFAULT_VIRTUAL_METHOD_NAME)
@@ -62,11 +62,29 @@ static func get_default_channel_name(export_platform:EditorExportPlatform) -> St
 		return OS_NAME_TO_BUTLER_CHANNEL_NAME[export_platform.get_os_name()]
 	return ""
 
+## Determines the path of the butler executable,
+## based off of the [EditorSettings] for it.[br]
+## Returns an absolute filesystem path.
 static func get_butler_path() -> String:
 	var exe_path := NovaTools.get_editor_setting_default(BUTLER_PATH_EDITOR_SETTING_PATH, "")
 	return NovaTools.normalize_path_absolute(exe_path, false)
 
-# Not thread safe, and it shouldn't have to be really
+## Validates the provided [param exe_path] as a
+## likely candidate for a butler executable.[br]
+## Returns an error code if an error was encountered when validating,
+## or [constant OK] if no error was encountered.[br]
+## This is only a rough sanity check for the provided executable,
+## and may return false positives for other valid executable paths
+## that aren't specifically a butler executable.
+## It checks the existence of [param exe_path]
+## and attempts to launch it with the [code]version[/code] argument,
+## expecting any non empty output.[br]
+## NOTE: while highly unlikely to ever happen, if this is run multiple times during
+## the exact same reported value from [method Time.get_unix_time_from_system],
+## subsequent checks will product the [ERR_FILE_ALREADY_IN_USE] error.[br]
+## [b]NOTE:[/b] Technically, this method is possibly not thread safe if run simultaneously
+## and multiple times.
+## Though, frankly, I'd have no clue why you would ever want to in the first place.
 static func validate_butler_path(exe_path:String) -> int:
 	exe_path = NovaTools.normalize_path_absolute(exe_path, false)
 	if exe_path.is_empty():
@@ -102,6 +120,17 @@ static func validate_butler_path(exe_path:String) -> int:
 
 	return OK
 
+## Executes butler with the provided [param args] in an independent terminal window.
+## The butler executable path is determined by [method get_butler_path].[br]
+## If [param stay_open] is set, the terminal window will remain open after execution
+## of butler is complete.[br]
+## If [param validated] is set (as it it by default),
+## The butler executable path will also be checked using [param validate_butler_path]
+## before launching. If validation fails, the resulting error will be returned.[br]
+## Otherwise, [constant OK] will be returned.[br]
+## [b]NOTE:[/b] This method is not aware of error output nor return codes produced
+## by butler.
+## [b]NOTE:[/b] See [param validate_butler_path] for notes on thread safety.
 static func butler_run(args := [], stay_open := false, validated := true) -> int:
 	var exe_path := get_butler_path()
 	if validated:
@@ -111,19 +140,39 @@ static func butler_run(args := [], stay_open := false, validated := true) -> int
 	await NovaTools.launch_external_command_async(exe_path, args, stay_open)
 	return OK
 
+## Executes butler with the [code]version[/code] argument in
+## an independent terminal window.[br]
+## If [param stay_open] is set, the terminal window will remain open after execution
+## of butler is complete.[br]
+## [b]NOTE:[/b] See [param butler_version] for notes on error output and thread safety.
 static func butler_version(stay_open := true) -> int:
 	return await butler_run(["version"], stay_open, false)
 
-#TODO
+## Executes butler with the [code]upgrade[/code] argument in
+## an independent terminal window.[br]
+## If [param stay_open] is set, the terminal window will remain open after execution
+## of butler is complete.[br]
 static func butler_upgrade(stay_open := true) -> int:
 	return await butler_run(["upgrade"], stay_open)
 
+## Executes butler with the [code]login[/code] argument in
+## an independent terminal window.[br]
+## If [param stay_open] is set, the terminal window will remain open after execution
+## of butler is complete.[br]
 static func butler_login(stay_open := true) -> int:
 	return await butler_run(["login"], stay_open)
 
+## Executes butler with the [code]logout[/code] argument in
+## an independent terminal window.[br]
+## If [param stay_open] is set, the terminal window will remain open after execution
+## of butler is complete.[br]
 static func butler_logout(stay_open := true) -> int:
 	return await butler_run(["logout"], stay_open)
 
+## Attempts to open the publicly viewable page specially for the provided itch.io
+## [param game] thats published by the provided [param user] in the system's browser.[br]
+## Both [param user] and [param game] are required.[br]
+## Returns [constant OK] on success or an error code otherwise.
 static func open_game_itch_io_page(user:String, game:String) -> int:
 	if user.is_empty() or game.is_empty():
 		return ERR_INVALID_PARAMETER
@@ -133,13 +182,22 @@ static func open_game_itch_io_page(user:String, game:String) -> int:
 
 	return OS.shell_open("https://%s.itch.io/%s" % [user, game])
 
-## Launches butler in a external command window.
-## [param exe_path] must be the system path to the butler executable file.
-## [param path] must be the path to the file / folder to upload
+## Executes butler with the [code]push[/code] argument in
+## an independent terminal window.[br]
+## [param path] must be the path to the file / folder to upload.[br]
 ## [param user], [param game] and [param channel] all directly corelate to the
-## [code]user/game:channel[/code] section of the normal butler command.
-## all other params corelate to their counterparts in the butler cli.
-## Returns butler's exit code.
+## [code]user/game:channel[/code] section of butler CLI parameter and are all required.[br]
+## If [param version] is a not empty, an explicit version will be set for the upload.[br]
+## For each path pattern in [param ignore_patterns],
+## paths matching that pattern will be ignored.[br]
+## If [param dereference] is set, exported symlinks won't be referenced.[br]
+## If [param only_if_changed] is set, butler will only upload if it detects changes.[br]
+## If [param identity_path] is not empty,
+## then the butler credentials stored at that path will be used for authentication
+## when uploading.
+## If provided, then the file must exist on the system.[br]
+## If [param stay_open] is set, the terminal window will remain open after execution
+## of butler is complete.
 static func butler_push(path:String,
 							user:String,
 							game:String,
@@ -147,7 +205,8 @@ static func butler_push(path:String,
 							version := "",
 							ignore_patterns := [],
 							dereference := false,
-							only_if_changed := false, identity_path := "",
+							only_if_changed := false,
+							identity_path := "",
 							stay_open := true
 							) -> int:
 
@@ -188,8 +247,8 @@ static func butler_push(path:String,
 		args.append(version)
 	return await butler_run(args, stay_open)
 
-## Initialises the editor setting for the butler exe path if it's not already initialised
-## safely returning if it is already initialised, without overwriting the setting's value.
+## Initialises the editor setting for the butler executable path if it's not already initialised
+## safely returning if it is, avoiding overwriting the setting's set value, if any.
 static func try_init_butler_prefix_editor_setting() -> void:
 	NovaTools.try_init_editor_setting_path(BUTLER_PATH_EDITOR_SETTING_PATH,
 											"",
@@ -400,9 +459,10 @@ func _get_export_option_visibility(_platform:EditorExportPlatform, option: Strin
 	return true
 
 func _get_name() -> String:
-	return "zzzzzzzzzzzzzzzzzzzzzzzzzz"
-	#Name intentionally selected in order for this plugin to always be called last when exporting!
-	# The engine calls export plugins based off of their names, sorted alphabetically.
+	return "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+	# Name intentionally selected in order for this plugin to always be called last when exporting!
+	# The engine calls export plugins based off of their names, sorted alphabetically,
+	# and this plugin must always go last; lest it upload an incomplete export.
 
 func _supports_platform(platform:EditorExportPlatform) -> bool:
 	return ((not platform.is_class("EditorExportPlatformExtension")) or

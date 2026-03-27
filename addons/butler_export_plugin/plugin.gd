@@ -2,8 +2,14 @@
 @icon("./icon.svg")
 extends EditorPlugin
 
+## The plugin's name, as used internally by godot
+## (corelate to its parent folder's name)
 const PLUGIN_NAME_INTERNAL := "butler_export_plugin"
+
+# The plugin's name.
 const PLUGIN_NAME := "Butler Export Plugin"
+
+## The plugin's icon.
 const PLUGIN_ICON := preload("./icon.svg")
 
 const _ENSURE_SCRIPT_DOCS:Array[Script] = [
@@ -12,15 +18,18 @@ const _ENSURE_SCRIPT_DOCS:Array[Script] = [
 
 const _BUTLER_TOOLS_SUBMENU_NAME := "itch.io Butler"
 
-var _current_inst:ButlerExportPlugin = null
-var _tool_menu:PopupMenu = null
-
+# Intended to be used as a constant.
+# It just happens to be impossible to use static class methods
+# in a constant's definition.
 var _but_tools := {
 	"Login..." : ButlerExportPlugin.butler_login,
 	"Logout..." : ButlerExportPlugin.butler_logout,
 	"Upgrade" : ButlerExportPlugin.butler_upgrade,
 	"Version" : ButlerExportPlugin.butler_version
 }
+
+var _current_inst:ButlerExportPlugin = null
+var _tool_menu:PopupMenu = null
 
 # Every once ands a while the script docs simply refuse to update properly.
 # This nudges the docs into a ensuring that the important scripts added by
