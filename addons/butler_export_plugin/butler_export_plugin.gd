@@ -191,6 +191,15 @@ func _get_export_options(platform):
 		},
 		{
 			"option" : {
+				"name" : "butler/identity_path",
+				"type" : TYPE_STRING,
+				"hint": PROPERTY_HINT_GLOBAL_FILE,
+				"hint_string": "butler_creds, *",
+			},
+			"default_value" : "",
+		},
+		{
+			"option" : {
 				"name" : "butler/stay_open",
 				"type" : TYPE_BOOL,
 			},
@@ -224,10 +233,14 @@ func _supports_platform(platform:EditorExportPlatform):
 			EXTRA_SUPPORTED_CLASSES_NAMES.any(func (n): return platform.is_class(n))
 			)
 
-func _export_end_command(_features:PackedStringArray, _is_debug:bool, path:String, _flags:int):
-	push_warning("Please note, web publishing will not automatically set the uploaded files as " +
-					"playable in browser. Make sure to do this manually!" )
-	await butler_launch(ProjectSettings.globalize_path("res://" + path),
+func _export_end_tool(features:PackedStringArray, is_debug:bool, path:String, _flags:int):
+	if "web" in features:
+		push_warning("Please note, web publishing will not automatically set the uploaded files as " +
+						"playable in browser. Make sure to do this manually!")
+
+	path = "res://".path_join(path)
+
+	var err := await butler_push(path,
 						get_option("butler/user"),
 						get_option("butler/game_name"),
 						get_option("butler/channel"),
@@ -235,8 +248,14 @@ func _export_end_command(_features:PackedStringArray, _is_debug:bool, path:Strin
 						get_option("butler/ignore_file_patterns"),
 						get_option("butler/dereference"),
 						get_option("butler/only_if_changed"),
+						get_option("butler/identity_path"),
 						get_option("butler/stay_open")
 						)
+	if err != OK:
+		push_error("Butler export returned an error: %s (%d)" % [error_string(err), err])
+
+func _export_begin_tool(features:PackedStringArray, is_debug:bool, path:String, flags:int):
+	return
 
 func _get_export_features(_platform:EditorExportPlatform, _debug:bool) -> PackedStringArray:
 	return PackedStringArray(["butlerpush"])
