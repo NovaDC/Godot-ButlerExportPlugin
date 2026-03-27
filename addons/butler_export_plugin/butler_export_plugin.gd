@@ -200,6 +200,13 @@ func _get_export_options(platform):
 		},
 		{
 			"option" : {
+				"name" : "butler/allow_debug_builds",
+				"type" : TYPE_BOOL,
+			},
+			"default_value" : false,
+		},
+		{
+			"option" : {
 				"name" : "butler/stay_open",
 				"type" : TYPE_BOOL,
 			},
@@ -250,6 +257,13 @@ func _supports_platform(platform:EditorExportPlatform):
 			)
 
 func _export_end_tool(features:PackedStringArray, is_debug:bool, path:String, _flags:int):
+	if not get_option("butler/upload_to_itch.io"):
+		return
+
+	if not get_option("butler/allow_debug_builds") and is_debug:
+		print("Not using butler to upload, as it's a debug build...")
+		return
+
 	if "web" in features:
 		push_warning("Please note, web publishing will not automatically set the uploaded files as " +
 						"playable in browser. Make sure to do this manually!")
