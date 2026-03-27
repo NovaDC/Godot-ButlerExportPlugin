@@ -200,6 +200,13 @@ func _get_export_options(platform):
 		},
 		{
 			"option" : {
+				"name" : "butler/enforce_whole_directory",
+				"type" : TYPE_BOOL,
+			},
+			"default_value" : _suggest_whole_directory(platform),
+		},
+		{
+			"option" : {
 				"name" : "butler/allow_debug_builds",
 				"type" : TYPE_BOOL,
 			},
@@ -269,6 +276,9 @@ func _export_end_tool(features:PackedStringArray, is_debug:bool, path:String, _f
 						"playable in browser. Make sure to do this manually!")
 
 	path = "res://".path_join(path)
+	if get_option("butler/enforce_whole_directory"):
+		path = path.get_base_dir()
+
 
 	var err := await butler_push(path,
 						get_option("butler/user"),
@@ -289,6 +299,18 @@ func _export_begin_tool(features:PackedStringArray, is_debug:bool, path:String, 
 
 func _get_export_features(_platform:EditorExportPlatform, _debug:bool) -> PackedStringArray:
 	return PackedStringArray(["butlerpush"])
+
+func _suggest_whole_directory(export_platform:EditorExportPlatform) -> bool:
+	if export_platform is EditorExportPlatformAndroid:
+		return false
+	if export_platform is EditorExportPlatformWindows or export_platform is EditorExportPlatformLinuxBSD:
+		var preset := get_export_preset()
+		if preset == null:
+			return false
+		return not get_export_preset().get_or_env("binary_format/embed_pck", "")
+	if export_platform is EditorExportPlatformWeb:
+		return true
+	return false
 
 func _get_version_suggestions(export_platform:EditorExportPlatform) -> String:
 	var project_version := ProjectSettings.get_setting("application/config/version")
