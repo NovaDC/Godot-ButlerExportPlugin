@@ -208,19 +208,35 @@ func _get_export_options(platform):
 	]
 
 func _get_export_option_warning(_platform:EditorExportPlatform, option: String) -> String:
-	if (get_option("butler/upload_to_itch.io") and
-		option == "butler/upload_to_itch.io" and
-		NovaTools.get_editor_setting_default(BUTLER_PATH_EDITOR_SETTING_PATH, "") == ""
-		):
-		return "Butler executable path not set!"
+	if not get_option("butler/upload_to_itch.io"):
+		return ""
+	match (option):
+		"butler/upload_to_itch.io":
+			if get_butler_path().is_empty():
+				return "Butler executable path not set!"
+		"butler/identity_path":
+			var p := get_option("butler/identity_path")
+			if not p.is_empty():
+				p = NovaTools.normalize_path_absolute(p, false)
+				if p.is_empty():
+					return "%s cant be found." % [p]
+		"butler/user":
+			if get_option("butler/user").is_empty():
+				return "Itch.io user must be provided."
+		"butler/game_name":
+			if get_option("butler/game_name").is_empty():
+				return "Game name must be provided."
+		"butler/channel":
+			if get_option("butler/channel").is_empty():
+				return "Channel must be provided."
 	return ""
 
 func _get_export_option_visibility(_platform:EditorExportPlatform, option: String) -> bool:
-	if (not get_option("butler/upload_to_itch.io") and
-		option.begins_with("butler/") and
-		option != "butler/upload_to_itch.io"
-		):
-		return false
+	if not get_option("butler/upload_to_itch.io") and option != "butler/upload_to_itch.io":
+		return not option.begins_with("butler/")
+	match (option):
+		"butler/identity_path", "butler/stay_open", "butler/dereference":
+			return get_export_preset().are_advanced_options_enabled()
 	return true
 
 func _get_name():
